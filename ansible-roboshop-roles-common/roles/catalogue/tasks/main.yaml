@@ -26,7 +26,7 @@
   ansible.builtin.shell: mongosh --host {{ MONGODB_HOST }} </app/db/master-data.js
   when: catalogue_output.stdout | int < 0
 
-- name: app setup
+- name: system setup
   ansible.builtin.role:
     name: common
     tasks_from: system-setup.yaml

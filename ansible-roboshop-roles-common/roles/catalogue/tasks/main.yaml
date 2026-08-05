@@ -1,10 +1,10 @@
 - name: app setup
-  ansible.builtin.role:
+  ansible.builtin.import_role:
     name: common
     tasks_from: app-setup.yaml
 
 - name: nodejs setup
-  ansible.builtin.role:
+  ansible.builtin.import_role:
     name: common
     tasks_from: nodejs.yaml
 
@@ -27,6 +27,6 @@
   when: catalogue_output.stdout | int < 0
 
 - name: system setup
-  ansible.builtin.role:
+  ansible.builtin.import_role:
     name: common
     tasks_from: system-setup.yaml

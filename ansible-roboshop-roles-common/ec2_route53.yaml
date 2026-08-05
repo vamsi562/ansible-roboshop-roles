@@ -1,0 +1,75 @@
+- name: New ec2 instances using ansible
+  hosts: local
+  connection: local
+  vars:
+    aws_region: "us-east-1"
+    instance_type: "t3.micro"
+    # Amazon Linux 2023 AMI ID (verify ID for your chosen region)
+    ami_id: "ami-0220d79f3f480ecf5"
+    security_group_id: "sg-0409773d198d0da2f"
+    subnet_id: "subnet-09332e278172839a0"
+    domain: "chikoo.fun"
+    # instance:
+    # - mongo
+    # - redis
+    # - mysql
+    # - rabbitmq
+
+  tasks:
+  - name: "Launch the EC2 Instance"
+    amazon.aws.ec2_instance:
+        name: "{{ item }}"
+        instance_type: "{{ instance_type }}"
+        image_id: "{{ ami_id }}"
+        region: "{{ aws_region }}"
+        security_group: "{{ security_group_id }}"
+        vpc_subnet_id: "{{ subnet_id }}"
+          
+        tags:
+          Name: "{{ item }}"
+    register: ec2_output
+    loop: "{{ instance }}"
+
+  # - name: debug output
+  #   ansible.builtin.debug:
+  #     msg: ec2_output
+
+  # - name: debug private ip
+  #   ansible.builtin.debug:
+  #     msg: "{{ item.instances[0].private_ip_address }}"
+  #   loop: "{{ ec2_output.results }}"
+
+  # - name: debug public ip
+  #   ansible.builtin.debug:
+  #     msg: "{{ item.instances[0].public_ip_address }}"
+  #   loop: "{{ ec2_output.results }}"
+  - name: Create a standard A record
+    amazon.aws.route53:
+      state: present
+      zone: "{{ domain }}"
+      record: "{{ item.item }}.{{ domain }}" #mongodb.chikoo.fun
+      type: A
+      ttl: 1
+      value: "{{ item.instances[0].private_ip_address }}"
+      overwrite: true
+    loop: "{{ ec2_output.results }}"
+
+  - name: "Create a frontend record"
+    amazon.aws.route53:
+      state: present
+      zone: "{{ domain }}"
+      record: "{{ domain }}"
+      type: A
+      ttl: 1
+      value: "{{ item.instances[0].public_ip_address }}"
+      overwrite: true
+    when: item.item == "frontend"
+    loop: "{{ ec2_output.results }}"
+
+
+
+
+
+# Commands:
+# ansible-playbook -i inventory.ini ec2_route53.yaml
+# ansible-playbook -i inventory.ini ec2_route53.yaml -e instance=['mongo','mysql']
